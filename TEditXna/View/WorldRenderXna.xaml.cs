@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -27,21 +28,24 @@ namespace TEditXna.View
     /// </summary>
     public partial class WorldRenderXna : UserControl
     {
-        private const float LayerTilePixels = 0;
+        private const float LayerTilePixels = 1 - 0;
 
+        private const float LayerTileBackgroundTextures = 1 - 0.01f;
+        private const float LayerTileWallTextures = 1 - 0.02f;
+        private const float LayerTileTrackBack = 1 - 0.03f;
+        private const float LayerTileTextures = 1 - 0.04f;
+        private const float LayerTileTrack = 1 - 0.05f;
+        private const float LayerTileActuator = 1 - 0.06f;
+        private const float LayerLiquid = 1 - 0.07f;
+        private const float LayerRedWires = 1 - 0.08f;
+        private const float LayerBlueWires = 1 - 0.09f;
+        private const float LayerGreenWires = 1 - 0.10f;
+        private const float LayerYellowWires = 1 - 0.11f;
 
-        private const float LayerTileWallTextures = 0.01f;
-        private const float LayerTileTrackBack = 0.02f;
-        private const float LayerTileTextures = 0.03f;
-        private const float LayerTileTrack = 0.04f;
-        private const float LayerTileActuator = 0.05f;
-        private const float LayerWires = 0.06f;
-        private const float LayerLiquid = 0.07f;
-
-        private const float LayerGrid = 0.10f;
-        private const float LayerLocations = 0.15f;
-        private const float LayerSelection = 0.20f;
-        private const float LayerTools = 0.25f;
+        private const float LayerGrid = 1 - 0.15f;
+        private const float LayerLocations = 1 - 0.20f;
+        private const float LayerSelection = 1 - 0.25f;
+        private const float LayerTools = 1 - 0.30f;
 
         private Color _backgroundColor = Color.FromNonPremultiplied(32, 32, 32, 255);
         private readonly GameTimer _gameTimer;
@@ -172,15 +176,16 @@ namespace TEditXna.View
 
         #region Load Content
 
-        private void xnaViewport_LoadContent(object sender, GraphicsDeviceEventArgs e)
+        private async void xnaViewport_LoadContent(object sender, GraphicsDeviceEventArgs e)
         {
-
             // Abort rendering if in design mode or if gameTimer is already running
             if (ViewModelBase.IsInDesignModeStatic || _gameTimer.IsRunning)
             {
                 return;
             }
             InitializeGraphicsComponents(e);
+
+
             if (_textureDictionary.Valid)
                 LoadTerrariaTextures(e);
 
@@ -245,6 +250,8 @@ namespace TEditXna.View
                                 source.Height -= (source.Bottom - tileTex.Height);
                             if (source.Right > tileTex.Width)
                                 source.Width -= (source.Right - tileTex.Width);
+
+                            if (source.Height <= 0 || source.Width <= 0) continue;
 
                             var color = new Color[source.Height * source.Width];
                             var dest = new Rectangle(x * tile.TextureGrid.X, y * tile.TextureGrid.Y, source.Width, source.Height);
@@ -348,8 +355,11 @@ namespace TEditXna.View
 
             // Start SpriteBatch
             _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone);
-            DrawPixelTiles();
 
+            DrawPixelTiles();
+            _spriteBatch.End();
+
+            _spriteBatch.Begin(SpriteSortMode.BackToFront, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone);
 
 
             // Draw sprite overlays
@@ -360,13 +370,7 @@ namespace TEditXna.View
                 DrawGrid();
 
             if (_wvm.ShowPoints)
-            {
-                _spriteBatch.End();
-                _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.Default, RasterizerState.CullNone);
                 DrawPoints();
-                _spriteBatch.End();
-                _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.Default, RasterizerState.CullNone);
-            }
 
             if (_wvm.Selection.IsActive)
                 DrawSelection();
@@ -470,6 +474,85 @@ namespace TEditXna.View
                         neighborTile[sw] = (x - 1) > 0     && (y + 1) < height ? _wvm.CurrentWorld.Tiles[x - 1, y + 1] : null;
                         neighborTile[se] = (x + 1) < width && (y + 1) < height ? _wvm.CurrentWorld.Tiles[x + 1, y + 1] : null;
 
+                        //draw background textures
+                        if (y >= 80)
+                        {
+                            int[,] backstyle = {
+                                {66, 67, 68, 69, 128, 125, 185},
+                                {70, 71, 68, 72, 128, 125, 185},
+                                {73, 74, 75, 76, 134, 125, 185},
+                                {77, 78, 79, 82, 134, 125, 185},
+                                {83, 84, 85, 86, 137, 125, 185},
+                                {83, 87, 88, 89, 137, 125, 185},
+                                {121, 122, 123, 124, 140, 125, 185},
+                                {153, 147, 148, 149, 150, 125, 185},
+                                {146, 154, 155, 156, 157, 125, 185}
+                            };
+                            int hellback = _wvm.CurrentWorld.HellBackStyle;
+                            int backX = 0;
+                            if (x <= _wvm.CurrentWorld.CaveBackX0)
+                                backX = _wvm.CurrentWorld.CaveBackStyle0;
+                            else if (x > _wvm.CurrentWorld.CaveBackX0 && x <= _wvm.CurrentWorld.CaveBackX1)
+                                backX = _wvm.CurrentWorld.CaveBackStyle1;
+                            else if (x > _wvm.CurrentWorld.CaveBackX1 && x <= _wvm.CurrentWorld.CaveBackX2)
+                                backX = _wvm.CurrentWorld.CaveBackStyle2;
+                            else if (x > _wvm.CurrentWorld.CaveBackX2)
+                                backX = _wvm.CurrentWorld.CaveBackStyle3;
+                            var source = new Rectangle(0, 0, 16, 16);
+                            var backTex = _textureDictionary.GetBackground(0);
+                            if (y < _wvm.CurrentWorld.GroundLevel)
+                            {
+                                backTex = _textureDictionary.GetBackground(0);
+                                source.Y += (y - 80) * 16;
+                            }
+                            else if (y == _wvm.CurrentWorld.GroundLevel)
+                            {
+                                backTex = _textureDictionary.GetBackground(backstyle[backX, 0]);
+                                source.X += (x % 8) * 16;
+                            }
+                            else if (y > _wvm.CurrentWorld.GroundLevel && y < _wvm.CurrentWorld.RockLevel)
+                            {
+                                backTex = _textureDictionary.GetBackground(backstyle[backX, 1]);
+                                source.X += (x % 8) * 16;
+                                source.Y += ((y - 1 - (int)_wvm.CurrentWorld.GroundLevel) % 6) * 16;
+                            }
+                            else if (y == _wvm.CurrentWorld.RockLevel)
+                            {
+                                backTex = _textureDictionary.GetBackground(backstyle[backX, 2]);
+                                source.X += (x % 8) * 16;
+                            }
+                            else if (y > _wvm.CurrentWorld.RockLevel && y < (_wvm.CurrentWorld.TilesHigh - 327))
+                            {
+                                backTex = _textureDictionary.GetBackground(backstyle[backX, 3]);
+                                source.X += (x % 8) * 16;
+                                source.Y += ((y - 1 - (int)_wvm.CurrentWorld.RockLevel) % 6) * 16;
+                            }
+                            else if (y == (_wvm.CurrentWorld.TilesHigh - 327))
+                            {
+                                backTex = _textureDictionary.GetBackground(backstyle[backX, 4] + hellback);
+                                source.X += (x % 8) * 16;
+                            }
+                            else if (y > (_wvm.CurrentWorld.TilesHigh - 327) && y < (_wvm.CurrentWorld.TilesHigh - 200))
+                            {
+                                backTex = _textureDictionary.GetBackground(backstyle[backX, 5] + hellback);
+                                source.X += (x % 8) * 16;
+                                source.Y += ((y - 1 - (int)_wvm.CurrentWorld.TilesHigh + 327) % 18) * 16;
+                            }
+                            else if (y == (_wvm.CurrentWorld.TilesHigh - 200))
+                            {
+                                backTex = _textureDictionary.GetBackground(backstyle[backX, 6] + hellback);
+                                source.X += (x % 8) * 16;
+                            }
+                            else
+                            {
+                                backTex = _textureDictionary.GetUnderworld(4);
+                                source.Y += (y - (int)_wvm.CurrentWorld.TilesHigh + 200) * 16;
+                            }
+
+                            var dest = new Rectangle(1 + (int)((_scrollPosition.X + x) * _zoom), 1 + (int)((_scrollPosition.Y + y) * _zoom), (int)_zoom, (int)_zoom);
+                            _spriteBatch.Draw(backTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileBackgroundTextures);
+                        }
+
                         if (_wvm.ShowWalls)
                         {
                             if (curtile.Wall > 0)
@@ -481,10 +564,11 @@ namespace TEditXna.View
                                     if (curtile.uvWallCache == 0xFFFF)
                                     {
                                         int sameStyle = 0x00000000;
-                                        sameStyle |= (neighborTile[e] != null && neighborTile[e].Wall == curtile.Wall) ? 0x0001 : 0x0000;
-                                        sameStyle |= (neighborTile[n] != null && neighborTile[n].Wall == curtile.Wall) ? 0x0010 : 0x0000;
-                                        sameStyle |= (neighborTile[w] != null && neighborTile[w].Wall == curtile.Wall) ? 0x0100 : 0x0000;
-                                        sameStyle |= (neighborTile[s] != null && neighborTile[s].Wall == curtile.Wall) ? 0x1000 : 0x0000;
+                                        sameStyle |= (neighborTile[e] != null && neighborTile[e].Wall > 0) ? 0x0001 : 0x0000;
+                                        sameStyle |= (neighborTile[n] != null && neighborTile[n].Wall > 0) ? 0x0010 : 0x0000;
+                                        sameStyle |= (neighborTile[w] != null && neighborTile[w].Wall > 0) ? 0x0100 : 0x0000;
+                                        sameStyle |= (neighborTile[s] != null && neighborTile[s].Wall > 0) ? 0x1000 : 0x0000;
+
                                         Vector2Int32 uvBlend = blendRules.GetUVForMasks((uint)sameStyle, 0x00000000, 0);
                                         curtile.uvWallCache = (ushort)((uvBlend.Y << 8) + uvBlend.X);
                                     }
@@ -495,54 +579,6 @@ namespace TEditXna.View
 
                                     _spriteBatch.Draw(wallTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileWallTextures);
                                 }
-                            }
-                            else
-                            {
-                                var wallTex = _textureDictionary.GetBackground(0);
-                                var source = new Rectangle(0, 0, 16, 16);
-                                if (y >= 80 && y < _wvm.CurrentWorld.GroundLevel)
-                                {
-                                    source.Y += (y - 80) * 4;
-                                    if (source.Y > 1784)
-                                    {
-                                        source.Y = 1784;
-                                    }
-                                }
-                                else if (y == _wvm.CurrentWorld.GroundLevel)
-                                {
-                                    wallTex = _textureDictionary.GetBackground(1);
-                                    source.X += (x % 8) * 16;
-                                }
-                                else if (y > _wvm.CurrentWorld.GroundLevel && y < _wvm.CurrentWorld.RockLevel)
-                                {
-                                    wallTex = _textureDictionary.GetBackground(2);
-                                    source.X += (x % 8) * 16;
-                                    source.Y += ((y - 1 - (int)_wvm.CurrentWorld.GroundLevel) % 6) * 16;
-                                }
-                                else if (y == _wvm.CurrentWorld.RockLevel)
-                                {
-                                    wallTex = _textureDictionary.GetBackground(4);
-                                    source.X += (x % 8) * 16;
-                                }
-                                else if (y > _wvm.CurrentWorld.RockLevel && y < (_wvm.CurrentWorld.TilesHigh - 200))
-                                {
-                                    wallTex = _textureDictionary.GetBackground(3);
-                                    source.X += (x % 8) * 16;
-                                    source.Y += ((y - 1 - (int)_wvm.CurrentWorld.RockLevel) % 6) * 16;
-                                }
-                                else if (y == (_wvm.CurrentWorld.TilesHigh - 200))
-                                {
-                                    wallTex = _textureDictionary.GetBackground(6);
-                                    source.X += (x % 8) * 16;
-                                }
-                                else if (y > (_wvm.CurrentWorld.TilesHigh - 200))
-                                {
-                                    wallTex = _textureDictionary.GetBackground(5);
-                                    source.X += (x % 8) * 16;
-                                    source.Y += ((y - 1 - (int)_wvm.CurrentWorld.TilesHigh + 250) % 18) * 16;
-                                }
-                                var dest = new Rectangle(1 + (int)((_scrollPosition.X + x) * _zoom), 1 + (int)((_scrollPosition.Y + y) * _zoom), (int)_zoom, (int)_zoom);
-                                _spriteBatch.Draw(wallTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileWallTextures);
                             }
                         }
                         if (_wvm.ShowTiles)
@@ -577,7 +613,7 @@ namespace TEditXna.View
                                                 case 66: isRight = true; --baseX; break;
                                             }
                                         }
-                                        
+
                                         //Check tree type
                                         int treeType = -1; //Default to normal in case no grass grows beneath the tree
                                         for (int i = 0; i < 100; i++)
@@ -726,62 +762,138 @@ namespace TEditXna.View
 
                                     if (tileTex != null)
                                     {
-                                        if (!isTreeSpecial && !isMushroom && curtile.Type != 314)
+                                        if ((curtile.Type == 128 || curtile.Type == 269) && curtile.U >= 100)
                                         {
-                                            source = new Rectangle(curtile.U, curtile.V, tileprop.TextureGrid.X, tileprop.TextureGrid.Y);
-                                            if (source.Width <= 0)
-                                                source.Width = 16;
-                                            if (source.Height <= 0)
-                                                source.Height = 16;
-
-                                            if (source.Bottom > tileTex.Height)
-                                                source.Height -= (source.Bottom - tileTex.Height);
-                                            if (source.Right > tileTex.Width)
-                                                source.Width -= (source.Right - tileTex.Width);
-
-                                            if (source.Width <= 0 || source.Height <= 0)
-                                                continue;
-
+                                            int armor = curtile.U / 100;
                                             dest = new Rectangle(1 + (int)((_scrollPosition.X + x) * _zoom), 1 + (int)((_scrollPosition.Y + y) * _zoom), (int)_zoom, (int)_zoom);
-                                            if (curtile.Type == 323)
+                                            switch (curtile.V / 18)
                                             {
-                                                dest.X += (int)(curtile.V * _zoom / 16);
-                                                int treeType = (curtile.uvTileCache & 0x000F);
-                                                source.Y = 22 * treeType;
+                                                case 0:
+                                                    tileTex = (Texture2D)_textureDictionary.GetArmorHead(armor);
+                                                    source = new Rectangle (2, 0, 36, 36);
+                                                    dest.Width = (int)(_zoom * source.Width / 16f);
+                                                    dest.Height = (int)(_zoom * source.Height / 16f);
+                                                    dest.Y += (int)(((16 - source.Height - 4) / 2F) * _zoom / 16);
+                                                    dest.X -= (int)((2 * _zoom / 16));
+                                                    break;
+                                                case 1:
+                                                    if (curtile.Type == 128)
+                                                        tileTex = (Texture2D)_textureDictionary.GetArmorBody(armor);
+                                                    else
+                                                        tileTex = (Texture2D)_textureDictionary.GetArmorFemale(armor);
+                                                    source = new Rectangle (2, 0, 36, 54);
+                                                    dest.Width = (int)(_zoom * source.Width / 16f);
+                                                    dest.Height = (int)(_zoom * source.Height / 16f);
+                                                    dest.Y += (int)(((16 - source.Height - 18) / 2F) * _zoom / 16);
+                                                    dest.X -= (int)((2 * _zoom / 16));
+                                                    break;
+                                                case 2:
+                                                    tileTex = (Texture2D)_textureDictionary.GetArmorLegs(armor);
+                                                    source = new Rectangle (2, 42, 36, 12);
+                                                    dest.Width = (int)(_zoom * source.Width / 16f);
+                                                    dest.Height = (int)(_zoom * source.Height / 16f);
+                                                    dest.Y -= (int)((2 * _zoom / 16));
+                                                    dest.X -= (int)((2 * _zoom / 16));
+                                                    break;
                                             }
-                                            var texsize = tileprop.TextureGrid;
-                                            if (texsize.X != 16 || texsize.Y != 16)
+                                            if (curtile.U % 100 < 36)
+                                                _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.FlipHorizontally, LayerTileTrack);
+                                            else
+                                                _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileTrack);
+                                            tileTex = _textureDictionary.GetTile(curtile.Type);
+                                            source = new Rectangle((curtile.U % 100), curtile.V, tileprop.TextureGrid.X, tileprop.TextureGrid.Y);
+                                            dest = new Rectangle(1 + (int)((_scrollPosition.X + x) * _zoom), 1 + (int)((_scrollPosition.Y + y) * _zoom), (int)_zoom, (int)_zoom);
+                                        }
+                                        else if (curtile.Type == 334 && curtile.U >= 5000)
+                                        {
+                                            if (_wvm.CurrentWorld.Tiles[x + 1, y].U >= 5000)
                                             {
-                                                dest.Width = (int)(texsize.X * (_zoom / 16));
-                                                dest.Height = (int)(texsize.Y * (_zoom / 16));
-
-                                                var frame = (tileprop.Frames.FirstOrDefault(f => f.UV == new Vector2Short(curtile.U, curtile.V)));
-                                                var frameAnchor = FrameAnchor.None;
-                                                if (frame != null)
-                                                    frameAnchor = frame.Anchor;
-                                                switch (frameAnchor)
+                                                int weapon = (curtile.U % 5000) - 100;
+                                                tileTex = (Texture2D)_textureDictionary.GetItem(weapon);
+                                                int flip = curtile.U / 5000;
+                                                float scale = 1f;
+                                                if (tileTex.Width > 40 || tileTex.Height > 40)
                                                 {
-                                                    case FrameAnchor.None:
-                                                        dest.X += (int)(((16 - texsize.X) / 2F) * _zoom / 16);
-                                                        dest.Y += (int)(((16 - texsize.Y) / 2F) * _zoom / 16);
-                                                        break;
-                                                    case FrameAnchor.Left:
-                                                        //position.X += (16 - texsize.X) / 2;
-                                                        dest.Y += (int)(((16 - texsize.Y) / 2F) * _zoom / 16);
-                                                        break;
-                                                    case FrameAnchor.Right:
-                                                        dest.X += (int)((16 - texsize.X) * _zoom / 16);
-                                                        dest.Y += (int)(((16 - texsize.Y) / 2F) * _zoom / 16);
-                                                        break;
-                                                    case FrameAnchor.Top:
-                                                        dest.X += (int)(((16 - texsize.X) / 2F) * _zoom / 16);
-                                                        //position.Y += (16 - texsize.Y);
-                                                        break;
-                                                    case FrameAnchor.Bottom:
-                                                        dest.X += (int)(((16 - texsize.X) / 2F) * _zoom / 16);
-                                                        dest.Y += (int)((16 - texsize.Y) * _zoom / 16);
-                                                        break;
+                                                    if (tileTex.Width > tileTex.Height)
+                                                        scale = 40f / (float)tileTex.Width;
+                                                    else
+                                                        scale = 40f / (float)tileTex.Height;
                                                 }
+                                                scale *= World.ItemProperties[weapon].Scale;
+                                                source = new Rectangle(0, 0, tileTex.Width, tileTex.Height);
+                                                SpriteEffects effect = SpriteEffects.None;
+                                                if (flip >= 3)
+                                                {
+                                                    effect = SpriteEffects.FlipHorizontally;
+                                                }
+                                                _spriteBatch.Draw(tileTex, new Vector2(1 + (int)((_scrollPosition.X + x + 1.5) * _zoom) , 1 + (int)((_scrollPosition.Y + y + .5) * _zoom)), source, Color.White, 0f, new Vector2((float)(tileTex.Width / 2), (float)(tileTex.Height / 2)), scale * _zoom / 16f, effect, LayerTileTrack);
+                                            }
+                                            source = new Rectangle(((curtile.U / 5000) - 1) * 18, curtile.V, tileprop.TextureGrid.X, tileprop.TextureGrid.Y);
+                                            tileTex = _textureDictionary.GetTile(curtile.Type);
+                                            dest = new Rectangle(1 + (int)((_scrollPosition.X + x) * _zoom), 1 + (int)((_scrollPosition.Y + y) * _zoom), (int)_zoom, (int)_zoom);
+                                        }
+                                        else if (curtile.Type == 395 && curtile.V == 0 && curtile.U % 36 == 0)
+                                        {
+                                            TileEntity entity = _wvm.CurrentWorld.GetTileEntityAtTile(x, y);
+                                            if (entity != null)
+                                            {
+                                                int item = entity.NetId;
+                                                if (item > 0)
+                                                {
+                                                    tileTex = (Texture2D)_textureDictionary.GetItem(item);
+                                                    float scale = 1f;
+                                                    if (tileTex.Width > 20 || tileTex.Height > 20)
+                                                    {
+                                                        if (tileTex.Width > tileTex.Height)
+                                                            scale = 20f / (float)tileTex.Width;
+                                                        else
+                                                            scale = 20f / (float)tileTex.Height;
+                                                    }
+                                                    scale *= World.ItemProperties[item].Scale;
+                                                    source = new Rectangle(0, 0, tileTex.Width, tileTex.Height);
+                                                    _spriteBatch.Draw(tileTex, new Vector2(1 + (int)((_scrollPosition.X + x + 1) * _zoom) , 1 + (int)((_scrollPosition.Y + y + 1) * _zoom)), source, Color.White, 0f, new Vector2((float)(tileTex.Width / 2), (float)(tileTex.Height / 2)), scale * _zoom / 16f, SpriteEffects.FlipHorizontally, LayerTileTrack);
+                                                }
+                                            }
+                                            source = new Rectangle(curtile.U, curtile.V, tileprop.TextureGrid.X, tileprop.TextureGrid.Y);
+                                            tileTex = _textureDictionary.GetTile(curtile.Type);
+                                            dest = new Rectangle(1 + (int)((_scrollPosition.X + x) * _zoom), 1 + (int)((_scrollPosition.Y + y) * _zoom), (int)_zoom, (int)_zoom);
+                                        }
+                                        else if (curtile.Type == 171) // Christmas Tree
+                                        {
+                                            if (curtile.U >= 10)
+                                            {
+                                                int star = curtile.V & 7;
+                                                int garland = (curtile.V >> 3) & 7;
+                                                int bulb = (curtile.V >> 6) & 0xf;
+                                                int light = (curtile.V >> 10) & 0xf;
+                                                source = new Rectangle(0, 0, 64, 128);
+                                                dest = new Rectangle(1 + (int)((_scrollPosition.X + x) * _zoom), 1 + (int)((_scrollPosition.Y + y) * _zoom), (int)_zoom * 4, (int)_zoom * 8);
+                                                if (star > 0)
+                                                {
+                                                    tileTex = (Texture2D)_textureDictionary.GetMisc("Xmas_3");
+                                                    source.X = 66 * (star - 1);
+                                                    _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileTrack);
+                                                }
+                                                if (garland > 0)
+                                                {
+                                                    tileTex = (Texture2D)_textureDictionary.GetMisc("Xmas_1");
+                                                    source.X = 66 * (garland - 1);
+                                                    _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileTrack);
+                                                }
+                                                if (bulb > 0)
+                                                {
+                                                    tileTex = (Texture2D)_textureDictionary.GetMisc("Xmas_2");
+                                                    source.X = 66 * (bulb - 1);
+                                                    _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileTrack);
+                                                }
+                                                if (light > 0)
+                                                {
+                                                    tileTex = (Texture2D)_textureDictionary.GetMisc("Xmas_4");
+                                                    source.X = 66 * (light - 1);
+                                                    _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileTrack);
+                                                }
+                                                source.X = 0;
+                                                tileTex = (Texture2D)_textureDictionary.GetMisc("Xmas_0");
                                             }
                                         }
                                         else if (curtile.Type == 314)
@@ -937,10 +1049,72 @@ namespace TEditXna.View
                                             dest.X += (int)(((16 - source.Width) / 2F) * _zoom / 16);
                                             dest.Y += (int)((16 - source.Height) * _zoom / 16);
                                         }
+                                        else if ((curtile.Type >= 373 && curtile.Type <= 375) || curtile.Type == 461)
+                                        {
+                                          //skip rendering drips
+                                        }
+                                        else
+                                        {
+                                            source = new Rectangle(curtile.U, curtile.V, tileprop.TextureGrid.X, tileprop.TextureGrid.Y);
+                                            if (source.Width <= 0)
+                                                source.Width = 16;
+                                            if (source.Height <= 0)
+                                                source.Height = 16;
+
+                                            if (source.Bottom > tileTex.Height)
+                                                source.Height -= (source.Bottom - tileTex.Height);
+                                            if (source.Right > tileTex.Width)
+                                                source.Width -= (source.Right - tileTex.Width);
+
+                                            if (source.Width <= 0 || source.Height <= 0)
+                                                continue;
+
+                                            dest = new Rectangle(1 + (int)((_scrollPosition.X + x) * _zoom), 1 + (int)((_scrollPosition.Y + y) * _zoom), (int)_zoom, (int)_zoom);
+                                            if (curtile.Type == 323)
+                                            {
+                                                dest.X += (int)(curtile.V * _zoom / 16);
+                                                int treeType = (curtile.uvTileCache & 0x000F);
+                                                source.Y = 22 * treeType;
+                                            }
+                                            var texsize = tileprop.TextureGrid;
+                                            if (texsize.X != 16 || texsize.Y != 16)
+                                            {
+                                                dest.Width = (int)(texsize.X * (_zoom / 16));
+                                                dest.Height = (int)(texsize.Y * (_zoom / 16));
+
+                                                var frame = (tileprop.Frames.FirstOrDefault(f => f.UV == new Vector2Short(curtile.U, curtile.V)));
+                                                var frameAnchor = FrameAnchor.None;
+                                                if (frame != null)
+                                                    frameAnchor = frame.Anchor;
+                                                switch (frameAnchor)
+                                                {
+                                                    case FrameAnchor.None:
+                                                        dest.X += (int)(((16 - texsize.X) / 2F) * _zoom / 16);
+                                                        dest.Y += (int)(((16 - texsize.Y) / 2F) * _zoom / 16);
+                                                        break;
+                                                    case FrameAnchor.Left:
+                                                        //position.X += (16 - texsize.X) / 2;
+                                                        dest.Y += (int)(((16 - texsize.Y) / 2F) * _zoom / 16);
+                                                        break;
+                                                    case FrameAnchor.Right:
+                                                        dest.X += (int)((16 - texsize.X) * _zoom / 16);
+                                                        dest.Y += (int)(((16 - texsize.Y) / 2F) * _zoom / 16);
+                                                        break;
+                                                    case FrameAnchor.Top:
+                                                        dest.X += (int)(((16 - texsize.X) / 2F) * _zoom / 16);
+                                                        //position.Y += (16 - texsize.Y);
+                                                        break;
+                                                    case FrameAnchor.Bottom:
+                                                        dest.X += (int)(((16 - texsize.X) / 2F) * _zoom / 16);
+                                                        dest.Y += (int)((16 - texsize.Y) * _zoom / 16);
+                                                        break;
+                                                }
+                                            }
+                                        }
 
                                         _spriteBatch.Draw(tileTex, dest, source, curtile.InActive ? Color.Gray : Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileTextures);
                                         // Actuator Overlay
-                                        if (curtile.Actuator && _wvm.ShowWires)
+                                        if (curtile.Actuator && _wvm.ShowActuators)
                                             _spriteBatch.Draw(_textureDictionary.Actuator, dest, _textureDictionary.ZeroSixteenRectangle, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileActuator);
 
                                     }
@@ -1002,7 +1176,7 @@ namespace TEditXna.View
 
                                         _spriteBatch.Draw(tileTex, dest, source, curtile.InActive ? Color.Gray : Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileTextures);
                                         // Actuator Overlay
-                                        if (curtile.Actuator && _wvm.ShowWires)
+                                        if (curtile.Actuator && _wvm.ShowActuators)
                                             _spriteBatch.Draw(_textureDictionary.Actuator, dest, _textureDictionary.ZeroSixteenRectangle, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileActuator);
 
                                     }
@@ -1012,7 +1186,11 @@ namespace TEditXna.View
 
                                     var tileTex = _textureDictionary.GetTile(curtile.Type);
 
-                                    if ((curtile.uvTileCache & 0x00FF) >= 16)
+                                    if ((curtile.uvTileCache & 0x00FF) >= 24)
+                                    {
+                                        tileTex = (Texture2D)_textureDictionary.GetMisc("Crimson_Cactus");
+                                    }
+                                    else if ((curtile.uvTileCache & 0x00FF) >= 16)
                                     {
                                         tileTex = (Texture2D)_textureDictionary.GetMisc("Evil_Cactus");
                                     }
@@ -1213,6 +1391,11 @@ namespace TEditXna.View
                                             {
                                                 int baseX = (isLeft) ? 1 : (isRight) ? -1 : 0;
                                                 Tile checkTile = (y + i) < _wvm.CurrentWorld.TilesHigh ? _wvm.CurrentWorld.Tiles[x + baseX, y + i] : null;
+                                                if (checkTile != null && checkTile.IsActive && checkTile.Type == (int)TileType.CrimsandBlock) //Crimson
+                                                {
+                                                    uv.X += 24;
+                                                    break;
+                                                }
                                                 if (checkTile != null && checkTile.IsActive && checkTile.Type == (int)TileType.EbonsandBlock) //Corruption
                                                 {
                                                     uv.X += 16;
@@ -1388,8 +1571,6 @@ namespace TEditXna.View
                                                 }
 
                                                 break;
-                                            case BrickStyle.Unknown06:
-                                            case BrickStyle.Unknown07:
                                             case BrickStyle.Full:
                                             default:
                                                 _spriteBatch.Draw(tileTex, dest, source, curtile.InActive ? Color.Gray : Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileTextures);
@@ -1398,133 +1579,82 @@ namespace TEditXna.View
 
 
                                         // Actuator Overlay
-                                        if (curtile.Actuator && _wvm.ShowWires)
+                                        if (curtile.Actuator && _wvm.ShowActuators)
                                             _spriteBatch.Draw(_textureDictionary.Actuator, dest, _textureDictionary.ZeroSixteenRectangle, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerTileActuator);
 
                                     }
                                 }
                             }
                         }
-                        if (_wvm.ShowWires)
+                        if (_wvm.ShowRedWires || _wvm.ShowBlueWires || _wvm.ShowGreenWires || _wvm.ShowYellowWires)
                         {
-                            if (curtile.WireRed)
+                            var tileTex = (Texture2D)_textureDictionary.GetMisc("WiresNew");
+                            if (tileTex != null)
                             {
-                                var tileTex = (Texture2D)_textureDictionary.GetMisc("Wires");
-
-                                if (tileTex != null)
+                                int voffset = 0;
+                                if (curtile.Type == 424)
+                                    voffset = (curtile.U / 18 + 1) * 72;
+                                if (curtile.Type == 445)
+                                    voffset = 72;
+                                if (curtile.WireRed && _wvm.ShowRedWires)
                                 {
                                     var source = new Rectangle(0, 0, 16, 16);
                                     var dest = new Rectangle(1 + (int)((_scrollPosition.X + x) * _zoom), 1 + (int)((_scrollPosition.Y + y) * _zoom), (int)_zoom, (int)_zoom);
 
                                     byte state = 0x00;
-                                    state |= (byte)((neighborTile[e] != null && neighborTile[e].WireRed == true) ? 0x01 : 0x00);
-                                    state |= (byte)((neighborTile[n] != null && neighborTile[n].WireRed == true) ? 0x02 : 0x00);
-                                    state |= (byte)((neighborTile[w] != null && neighborTile[w].WireRed == true) ? 0x04 : 0x00);
-                                    state |= (byte)((neighborTile[s] != null && neighborTile[s].WireRed == true) ? 0x08 : 0x00);
-                                    Vector2Int32 uv = new Vector2Int32(0, 0);
-                                    switch (state)
-                                    {
-                                        case 0x00: uv.X = 0; uv.Y = 3; break;
-                                        case 0x01: uv.X = 4; uv.Y = 2; break;
-                                        case 0x02: uv.X = 2; uv.Y = 2; break;
-                                        case 0x03: uv.X = 2; uv.Y = 1; break;
-                                        case 0x04: uv.X = 3; uv.Y = 2; break;
-                                        case 0x05: uv.X = 1; uv.Y = 0; break;
-                                        case 0x06: uv.X = 3; uv.Y = 1; break;
-                                        case 0x07: uv.X = 0; uv.Y = 1; break;
-                                        case 0x08: uv.X = 1; uv.Y = 2; break;
-                                        case 0x09: uv.X = 0; uv.Y = 2; break;
-                                        case 0x0A: uv.X = 0; uv.Y = 0; break;
-                                        case 0x0B: uv.X = 2; uv.Y = 0; break;
-                                        case 0x0C: uv.X = 4; uv.Y = 1; break;
-                                        case 0x0D: uv.X = 4; uv.Y = 0; break;
-                                        case 0x0E: uv.X = 3; uv.Y = 0; break;
-                                        case 0x0F: uv.X = 1; uv.Y = 1; break;
-                                    }
-                                    source.X = uv.X * (source.Width + 2);
-                                    source.Y = uv.Y * (source.Height + 2);
+                                    state |= (byte)((neighborTile[n] != null && neighborTile[n].WireRed == true) ? 0x01 : 0x00);
+                                    state |= (byte)((neighborTile[e] != null && neighborTile[e].WireRed == true) ? 0x02 : 0x00);
+                                    state |= (byte)((neighborTile[s] != null && neighborTile[s].WireRed == true) ? 0x04 : 0x00);
+                                    state |= (byte)((neighborTile[w] != null && neighborTile[w].WireRed == true) ? 0x08 : 0x00);
+                                    source.X = state * 18;
+                                    source.Y = voffset;
 
-                                    _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerWires);
+                                    _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerRedWires);
                                 }
-                            }
-                            if (curtile.WireGreen)
-                            {
-                                var tileTex = (Texture2D)_textureDictionary.GetMisc("Wires2");
-
-                                if (tileTex != null)
+                                if (curtile.WireBlue && _wvm.ShowBlueWires)
                                 {
                                     var source = new Rectangle(0, 0, 16, 16);
                                     var dest = new Rectangle(1 + (int)((_scrollPosition.X + x) * _zoom), 1 + (int)((_scrollPosition.Y + y) * _zoom), (int)_zoom, (int)_zoom);
 
                                     byte state = 0x00;
-                                    state |= (byte)((neighborTile[e] != null && neighborTile[e].WireGreen == true) ? 0x01 : 0x00);
-                                    state |= (byte)((neighborTile[n] != null && neighborTile[n].WireGreen == true) ? 0x02 : 0x00);
-                                    state |= (byte)((neighborTile[w] != null && neighborTile[w].WireGreen == true) ? 0x04 : 0x00);
-                                    state |= (byte)((neighborTile[s] != null && neighborTile[s].WireGreen == true) ? 0x08 : 0x00);
-                                    Vector2Int32 uv = new Vector2Int32(0, 0);
-                                    switch (state)
-                                    {
-                                        case 0x00: uv.X = 0; uv.Y = 3; break;
-                                        case 0x01: uv.X = 4; uv.Y = 2; break;
-                                        case 0x02: uv.X = 2; uv.Y = 2; break;
-                                        case 0x03: uv.X = 2; uv.Y = 1; break;
-                                        case 0x04: uv.X = 3; uv.Y = 2; break;
-                                        case 0x05: uv.X = 1; uv.Y = 0; break;
-                                        case 0x06: uv.X = 3; uv.Y = 1; break;
-                                        case 0x07: uv.X = 0; uv.Y = 1; break;
-                                        case 0x08: uv.X = 1; uv.Y = 2; break;
-                                        case 0x09: uv.X = 0; uv.Y = 2; break;
-                                        case 0x0A: uv.X = 0; uv.Y = 0; break;
-                                        case 0x0B: uv.X = 2; uv.Y = 0; break;
-                                        case 0x0C: uv.X = 4; uv.Y = 1; break;
-                                        case 0x0D: uv.X = 4; uv.Y = 0; break;
-                                        case 0x0E: uv.X = 3; uv.Y = 0; break;
-                                        case 0x0F: uv.X = 1; uv.Y = 1; break;
-                                    }
-                                    source.X = uv.X * (source.Width + 2);
-                                    source.Y = uv.Y * (source.Height + 2);
+                                    state |= (byte)((neighborTile[n] != null && neighborTile[n].WireBlue == true) ? 0x01 : 0x00);
+                                    state |= (byte)((neighborTile[e] != null && neighborTile[e].WireBlue == true) ? 0x02 : 0x00);
+                                    state |= (byte)((neighborTile[s] != null && neighborTile[s].WireBlue == true) ? 0x04 : 0x00);
+                                    state |= (byte)((neighborTile[w] != null && neighborTile[w].WireBlue == true) ? 0x08 : 0x00);
+                                    source.X = state * 18;
+                                    source.Y = 18 + voffset;
 
-                                    _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerWires);
+                                    _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerBlueWires);
                                 }
-                            }
-                            if (curtile.WireBlue)
-                            {
-                                var tileTex = (Texture2D)_textureDictionary.GetMisc("Wires3");
-
-                                if (tileTex != null)
+                                if (curtile.WireGreen && _wvm.ShowGreenWires)
                                 {
                                     var source = new Rectangle(0, 0, 16, 16);
                                     var dest = new Rectangle(1 + (int)((_scrollPosition.X + x) * _zoom), 1 + (int)((_scrollPosition.Y + y) * _zoom), (int)_zoom, (int)_zoom);
 
                                     byte state = 0x00;
-                                    state |= (byte)((neighborTile[e] != null && neighborTile[e].WireBlue == true) ? 0x01 : 0x00);
-                                    state |= (byte)((neighborTile[n] != null && neighborTile[n].WireBlue == true) ? 0x02 : 0x00);
-                                    state |= (byte)((neighborTile[w] != null && neighborTile[w].WireBlue == true) ? 0x04 : 0x00);
-                                    state |= (byte)((neighborTile[s] != null && neighborTile[s].WireBlue == true) ? 0x08 : 0x00);
-                                    Vector2Int32 uv = new Vector2Int32(0, 0);
-                                    switch (state)
-                                    {
-                                        case 0x00: uv.X = 0; uv.Y = 3; break;
-                                        case 0x01: uv.X = 4; uv.Y = 2; break;
-                                        case 0x02: uv.X = 2; uv.Y = 2; break;
-                                        case 0x03: uv.X = 2; uv.Y = 1; break;
-                                        case 0x04: uv.X = 3; uv.Y = 2; break;
-                                        case 0x05: uv.X = 1; uv.Y = 0; break;
-                                        case 0x06: uv.X = 3; uv.Y = 1; break;
-                                        case 0x07: uv.X = 0; uv.Y = 1; break;
-                                        case 0x08: uv.X = 1; uv.Y = 2; break;
-                                        case 0x09: uv.X = 0; uv.Y = 2; break;
-                                        case 0x0A: uv.X = 0; uv.Y = 0; break;
-                                        case 0x0B: uv.X = 2; uv.Y = 0; break;
-                                        case 0x0C: uv.X = 4; uv.Y = 1; break;
-                                        case 0x0D: uv.X = 4; uv.Y = 0; break;
-                                        case 0x0E: uv.X = 3; uv.Y = 0; break;
-                                        case 0x0F: uv.X = 1; uv.Y = 1; break;
-                                    }
-                                    source.X = uv.X * (source.Width + 2);
-                                    source.Y = uv.Y * (source.Height + 2);
+                                    state |= (byte)((neighborTile[n] != null && neighborTile[n].WireGreen == true) ? 0x01 : 0x00);
+                                    state |= (byte)((neighborTile[e] != null && neighborTile[e].WireGreen == true) ? 0x02 : 0x00);
+                                    state |= (byte)((neighborTile[s] != null && neighborTile[s].WireGreen == true) ? 0x04 : 0x00);
+                                    state |= (byte)((neighborTile[w] != null && neighborTile[w].WireGreen == true) ? 0x08 : 0x00);
+                                    source.X = state * 18;
+                                    source.Y = 36 + voffset;
 
-                                    _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerWires);
+                                    _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerGreenWires);
+                                }
+                                if (curtile.WireYellow && _wvm.ShowYellowWires)
+                                {
+                                    var source = new Rectangle(0, 0, 16, 16);
+                                    var dest = new Rectangle(1 + (int)((_scrollPosition.X + x) * _zoom), 1 + (int)((_scrollPosition.Y + y) * _zoom), (int)_zoom, (int)_zoom);
+
+                                    byte state = 0x00;
+                                    state |= (byte)((neighborTile[n] != null && neighborTile[n].WireYellow == true) ? 0x01 : 0x00);
+                                    state |= (byte)((neighborTile[e] != null && neighborTile[e].WireYellow == true) ? 0x02 : 0x00);
+                                    state |= (byte)((neighborTile[s] != null && neighborTile[s].WireYellow == true) ? 0x04 : 0x00);
+                                    state |= (byte)((neighborTile[w] != null && neighborTile[w].WireYellow == true) ? 0x08 : 0x00);
+                                    source.X = state * 18;
+                                    source.Y = 54 + voffset;
+
+                                    _spriteBatch.Draw(tileTex, dest, source, Color.White, 0f, default(Vector2), SpriteEffects.None, LayerYellowWires);
                                 }
                             }
                         }
@@ -1877,6 +2007,13 @@ namespace TEditXna.View
 
         private void xnaViewport_SizeChanged(object sender, SizeChangedEventArgs e)
         {
+            if (xnaViewport.GraphicsService == null)
+                return;
+
+            var present = xnaViewport.GraphicsService.GraphicsDevice.PresentationParameters;
+            present.BackBufferWidth  = (int) xnaViewport.RenderSize.Width;
+            present.BackBufferHeight = (int) xnaViewport.RenderSize.Height;
+            xnaViewport.GraphicsService.GraphicsDevice.Reset(present);
         }
 
         #endregion

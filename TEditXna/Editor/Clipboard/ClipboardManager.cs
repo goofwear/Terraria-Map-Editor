@@ -181,11 +181,12 @@ namespace TEditXna.Editor.Clipboard
                             curTile.WireRed = buffer.Tiles[x, y].WireRed;
                             curTile.WireGreen = buffer.Tiles[x, y].WireGreen;
                             curTile.WireBlue = buffer.Tiles[x, y].WireBlue;
+                            curTile.WireYellow = buffer.Tiles[x, y].WireYellow;
                             curTile.Actuator = buffer.Tiles[x, y].Actuator;
                             curTile.InActive = buffer.Tiles[x, y].InActive;
                         }
 
-                        if (!PasteEmpty && (curTile.LiquidAmount == 0 && !curTile.IsActive && curTile.Wall == 0 && !curTile.WireRed))
+                        if (!PasteEmpty && (curTile.LiquidAmount == 0 && !curTile.IsActive && curTile.Wall == 0 && !curTile.WireRed && !curTile.WireBlue && !curTile.WireGreen && !curTile.WireYellow))
                         {
                             // skip tiles that are empty if paste empty is not true
                             continue;
@@ -209,6 +210,7 @@ namespace TEditXna.Editor.Clipboard
                             curTile.WireRed = worldTile.WireRed;
                             curTile.WireGreen = worldTile.WireGreen;
                             curTile.WireBlue = worldTile.WireBlue;
+                            curTile.WireYellow = worldTile.WireYellow;
                             curTile.Actuator = worldTile.Actuator;
                             curTile.InActive = worldTile.InActive;
                         }
@@ -324,11 +326,45 @@ namespace TEditXna.Editor.Clipboard
                         //  Ignore multi-width objects when flipping on x-axis
                         if (tileSize.X > 1)
                             ClearTile(tile);
+                        // Flip brick-style
+                        switch (tile.BrickStyle)
+                        {
+                            case BrickStyle.SlopeTopRight:
+                                tile.BrickStyle = BrickStyle.SlopeTopLeft;
+                                break;
+                            case BrickStyle.SlopeTopLeft:
+                                tile.BrickStyle = BrickStyle.SlopeTopRight;
+                                break;
+                            case BrickStyle.SlopeBottomRight:
+                                tile.BrickStyle = BrickStyle.SlopeBottomLeft;
+                                break;
+                            case BrickStyle.SlopeBottomLeft:
+                                tile.BrickStyle = BrickStyle.SlopeBottomRight;
+                                break;
+                        }
                     }
-                    //  Ignore multi-height tiles when flipping on y-axis
-                    else if (tileSize.Y > 1)
+
+                    else
                     {
-                        ClearTile(tile);
+                        //  Ignore multi-height tiles when flipping on y-axis
+                        if (tileSize.Y > 1)
+                            ClearTile(tile);
+                        // Flip brick-style
+                        switch (tile.BrickStyle)
+                        {
+                            case BrickStyle.SlopeTopRight:
+                                tile.BrickStyle = BrickStyle.SlopeBottomRight;
+                                break;
+                            case BrickStyle.SlopeTopLeft:
+                                tile.BrickStyle = BrickStyle.SlopeBottomLeft;
+                                break;
+                            case BrickStyle.SlopeBottomRight:
+                                tile.BrickStyle = BrickStyle.SlopeTopRight;
+                                break;
+                            case BrickStyle.SlopeBottomLeft:
+                                tile.BrickStyle = BrickStyle.SlopeTopLeft;
+                                break;
+                        }
                     }
 
                     flippedBuffer.Tiles[bufferX, bufferY] = (Tile)tile;

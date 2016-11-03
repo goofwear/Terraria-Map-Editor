@@ -26,7 +26,7 @@ namespace TEditXna.ViewModel
                         CurrentWorld.Tiles[x, y].Reset();
 
                         Color curBgColor = GetBackgroundColor(y);
-                        PixelMap.SetPixelColor(x, y, Render.PixelMap.GetTileColor(CurrentWorld.Tiles[x, y], curBgColor, _showWalls, _showTiles, _showLiquid, _showWires));
+                        PixelMap.SetPixelColor(x, y, Render.PixelMap.GetTileColor(CurrentWorld.Tiles[x, y], curBgColor, _showWalls, _showTiles, _showLiquid, _showRedWires, _showBlueWires, _showGreenWires, _showYellowWires));
                     }
                 }
                 UndoManager.SaveUndo();
@@ -74,7 +74,7 @@ namespace TEditXna.ViewModel
                     if (TilePicker.WallPaintActive)
                         SetPixelAutomatic(curTile, wallColor: isErase ? 0 : TilePicker.WallColor);
                     if (TilePicker.ExtrasActive)
-                        SetPixelAutomatic(curTile, actuator: TilePicker.Actuator, actuatorInActive: TilePicker.ActuatorInActive);
+                        SetPixelAutomatic(curTile, actuator: isErase ? false : TilePicker.Actuator, actuatorInActive: isErase ? false : TilePicker.ActuatorInActive);
                     break;
                 case PaintMode.Wire:
                     if (TilePicker.RedWireActive)
@@ -83,6 +83,8 @@ namespace TEditXna.ViewModel
                         SetPixelAutomatic(curTile, wire2: !isErase);
                     if (TilePicker.GreenWireActive)
                         SetPixelAutomatic(curTile, wire3: !isErase);
+                    if (TilePicker.YellowWireActive)
+                        SetPixelAutomatic(curTile, wire4: !isErase);
                     break;
                 case PaintMode.Liquid:
                     SetPixelAutomatic(curTile, liquid: isErase ? (byte)0 : (byte)255, liquidType: TilePicker.LiquidType);
@@ -96,7 +98,7 @@ namespace TEditXna.ViewModel
             // curTile.BrickStyle = TilePicker.BrickStyle;
 
             Color curBgColor = GetBackgroundColor(y);
-            PixelMap.SetPixelColor(x, y, Render.PixelMap.GetTileColor(CurrentWorld.Tiles[x, y], curBgColor, _showWalls, _showTiles, _showLiquid, _showWires));
+            PixelMap.SetPixelColor(x, y, Render.PixelMap.GetTileColor(CurrentWorld.Tiles[x, y], curBgColor, _showWalls, _showTiles, _showLiquid, _showRedWires, _showBlueWires, _showGreenWires, _showYellowWires));
         }
 
         private void UpdateRenderWorld()
@@ -112,11 +114,11 @@ namespace TEditXna.ViewModel
                             OnProgressChanged(this, new ProgressChangedEventArgs(y.ProgressPercentage(CurrentWorld.TilesHigh), "Calculating Colors..."));
                             for (int x = 0; x < CurrentWorld.TilesWide; x++)
                             {
-                                PixelMap.SetPixelColor(x, y, Render.PixelMap.GetTileColor(CurrentWorld.Tiles[x, y], curBgColor, _showWalls, _showTiles, _showLiquid, _showWires));
+                                PixelMap.SetPixelColor(x, y, Render.PixelMap.GetTileColor(CurrentWorld.Tiles[x, y], curBgColor, _showWalls, _showTiles, _showLiquid, _showRedWires, _showBlueWires, _showGreenWires, _showYellowWires));
                             }
                         }
                     }
-                    OnProgressChanged(this, new ProgressChangedEventArgs(0, "Render Complete"));
+                    OnProgressChanged(this, new ProgressChangedEventArgs(100, "Render Complete"));
                 });
         }
 
@@ -127,7 +129,7 @@ namespace TEditXna.ViewModel
         public void UpdateRenderPixel(int x, int y)
         {
             Color curBgColor = GetBackgroundColor(y);
-            PixelMap.SetPixelColor(x, y, Render.PixelMap.GetTileColor(CurrentWorld.Tiles[x, y], curBgColor, _showWalls, _showTiles, _showLiquid, _showWires));
+            PixelMap.SetPixelColor(x, y, Render.PixelMap.GetTileColor(CurrentWorld.Tiles[x, y], curBgColor, _showWalls, _showTiles, _showLiquid, _showRedWires, _showBlueWires, _showGreenWires, _showYellowWires));
         }
 
         public void UpdateRenderRegion(Rectangle area)
@@ -147,11 +149,11 @@ namespace TEditXna.ViewModel
                         OnProgressChanged(this, new ProgressChangedEventArgs(y.ProgressPercentage(CurrentWorld.TilesHigh), "Calculating Colors..."));
                         for (int x = bounded.Left; x < bounded.Right; x++)
                         {
-                            PixelMap.SetPixelColor(x, y, Render.PixelMap.GetTileColor(CurrentWorld.Tiles[x, y], curBgColor, _showWalls, _showTiles, _showLiquid, _showWires));
+                            PixelMap.SetPixelColor(x, y, Render.PixelMap.GetTileColor(CurrentWorld.Tiles[x, y], curBgColor, _showWalls, _showTiles, _showLiquid, _showRedWires, _showBlueWires, _showGreenWires, _showYellowWires));
                         }
                     }
                 }
-                OnProgressChanged(this, new ProgressChangedEventArgs(0, "Render Complete"));
+                OnProgressChanged(this, new ProgressChangedEventArgs(100, "Render Complete"));
             });
         }
 
@@ -469,6 +471,7 @@ namespace TEditXna.ViewModel
                                        short? v = null,
                                        bool? wire2 = null,
                                        bool? wire3 = null,
+                                       bool? wire4 = null,
                                        BrickStyle? brickStyle = null,
                                        bool? actuator = null, bool? actuatorInActive = null,
                                        int? tileColor = null,
@@ -486,11 +489,21 @@ namespace TEditXna.ViewModel
                 {
                     curTile.Type = 0;
                     curTile.IsActive = false;
+                    curTile.InActive = false;
+                    curTile.Actuator = false;
+                    curTile.BrickStyle = BrickStyle.Full;
+                    curTile.U = 0;
+                    curTile.V = 0;
                 }
                 else
                 {
                     curTile.Type = (ushort)tile;
                     curTile.IsActive = true;
+                    if (World.TileProperties[curTile.Type].IsSolid)
+                    {
+                        curTile.U = -1;
+                        curTile.V = -1;
+                    }
                 }
             }
 
@@ -526,10 +539,13 @@ namespace TEditXna.ViewModel
                 curTile.WireRed = (bool)wire;
 
             if (wire2 != null)
-                curTile.WireGreen = (bool)wire2;
+                curTile.WireBlue = (bool)wire2;
 
             if (wire3 != null)
-                curTile.WireBlue = (bool)wire3;
+                curTile.WireGreen = (bool)wire3;
+
+            if (wire4 != null)
+                curTile.WireYellow = (bool)wire4;
 
             if (tileColor != null)
             {
@@ -556,7 +572,7 @@ namespace TEditXna.ViewModel
             }
 
             if (curTile.IsActive)
-                if (World.TileProperties[curTile.Type].IsSolid)
+                if (World.TileProperties[curTile.Type].IsSolid && !curTile.InActive && !World.TileProperties[curTile.Type].IsPlatform)
                     curTile.LiquidAmount = 0;
         }
 
@@ -575,11 +591,11 @@ namespace TEditXna.ViewModel
                     {
                         if (y > CurrentWorld.TilesHigh || x > CurrentWorld.TilesWide)
                             throw new IndexOutOfRangeException(string.Format("Error with world format tile [{0},{1}] is not a valid location. World file version: {2}", x, y, CurrentWorld.Version));
-                        pixels.SetPixelColor(x, y, Render.PixelMap.GetTileColor(CurrentWorld.Tiles[x, y], curBgColor, _showWalls, _showTiles, _showLiquid, _showWires));
+                        pixels.SetPixelColor(x, y, Render.PixelMap.GetTileColor(CurrentWorld.Tiles[x, y], curBgColor, _showWalls, _showTiles, _showLiquid, _showRedWires, _showBlueWires, _showGreenWires, _showYellowWires));
                     }
                 }
             }
-            OnProgressChanged(this, new ProgressChangedEventArgs(0, "Render Complete"));
+            OnProgressChanged(this, new ProgressChangedEventArgs(100, "Render Complete"));
             return pixels;
         }
 
@@ -587,14 +603,15 @@ namespace TEditXna.ViewModel
         {
             if (y < 80)
                 return World.GlobalColors["Space"];
-            if (y > CurrentWorld.TilesHigh - 192)
+            else if (y > CurrentWorld.TilesHigh - 192)
                 return World.GlobalColors["Hell"];
-            if (y > CurrentWorld.RockLevel)
+            else if (y > CurrentWorld.RockLevel)
                 return World.GlobalColors["Rock"];
-            if (y > CurrentWorld.GroundLevel)
+            else if (y > CurrentWorld.GroundLevel)
                 return World.GlobalColors["Earth"];
-
-            return World.GlobalColors["Sky"];
+            else 
+                return World.GlobalColors["Sky"];
         }
     }
 }
+ 

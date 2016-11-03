@@ -16,6 +16,7 @@ using System.Windows.Threading;
 using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
 using TEdit.MvvmLight.Threading;
+using TEdit.Geometry.Primitives;
 using TEdit.Utility;
 using Microsoft.Win32;
 using TEditXna.Editor;
@@ -61,14 +62,27 @@ namespace TEditXna.ViewModel
         private string _selectedPoint;
         private Sign _selectedSign;
         private Sprite _selectedSprite;
+        private TileEntity _selectedItemFrame;
+        private Vector2Int32 _selectedMannequin;
+        private Vector2Int32 _selectedRack;
+        private byte _selectedRackPrefix;
+        private int _selectedRackNetId;
+        private int _selectedMannHead;
+        private int _selectedMannBody;
+        private int _selectedMannLegs;
         private int _selectedTabIndex;
+        private int _selectedSpecialTile = 0;
         private bool _showGrid = true;
         private bool _showLiquid = true;
         private bool _showPoints = true;
         private bool _showTextures = true;
         private bool _showTiles = true;
         private bool _showWalls = true;
-        private bool _showWires = true;
+        private bool _showActuators = true;
+        private bool _showRedWires = true;
+        private bool _showBlueWires = true;
+        private bool _showGreenWires = true;
+        private bool _showYellowWires = true;
         private string _spriteFilter;
         private ListCollectionView _spritesView;
         private ICommand _viewLogCommand;
@@ -216,13 +230,50 @@ namespace TEditXna.ViewModel
             set { Set("SelectedTabIndex", ref _selectedTabIndex, value); }
         }
 
+        public int SelectedSpecialTile
+        {
+            get { return _selectedSpecialTile; }
+            set { Set("SelectedSpecialTile", ref _selectedSpecialTile, value); }
+        }
+
+        public int SelectedMannHead
+        {
+            get { return _selectedMannHead; }
+            set { Set("SelectedMannHead", ref _selectedMannHead, value); }
+        }
+
+        public int SelectedMannBody
+        {
+            get { return _selectedMannBody; }
+            set { Set("SelectedMannBody", ref _selectedMannBody, value); }
+        }
+
+        public int SelectedMannLegs
+        {
+            get { return _selectedMannLegs; }
+            set { Set("SelectedMannLegs", ref _selectedMannLegs, value); }
+        }
+
+        public byte SelectedRackPrefix
+        {
+            get { return _selectedRackPrefix; }
+            set { Set("SelectedRackPrefix", ref _selectedRackPrefix, value); }
+        }
+
+        public int SelectedRackNetId
+        {
+            get { return _selectedRackNetId; }
+            set { Set("SelectedRackNetId", ref _selectedRackNetId, value); }
+        }
+
         public Sign SelectedSign
         {
             get { return _selectedSign; }
             set
             {
                 Set("SelectedSign", ref _selectedSign, value);
-                SelectedTabIndex = 5;
+                SelectedTabIndex = 1;
+                SelectedSpecialTile = 1;
             }
         }
 
@@ -232,7 +283,41 @@ namespace TEditXna.ViewModel
             set
             {
                 Set("SelectedChest", ref _selectedChest, value);
-                SelectedTabIndex = 3;
+                SelectedTabIndex = 1;
+                SelectedSpecialTile = 2;
+            }
+        }
+
+        public TileEntity SelectedItemFrame
+        {
+            get { return _selectedItemFrame; }
+            set
+            {
+                Set("SelectedItemFrame", ref _selectedItemFrame, value);
+                SelectedTabIndex = 1;
+                SelectedSpecialTile = 3;
+            }
+        }
+
+        public Vector2Int32 SelectedMannequin
+        {
+            get { return _selectedMannequin; }
+            set
+            {
+                Set("SelectedMannequin", ref _selectedMannequin, value);
+                SelectedTabIndex = 1;
+                SelectedSpecialTile = 4;
+            }
+        }
+
+        public Vector2Int32 SelectedRack
+        {
+            get { return _selectedRack; }
+            set
+            {
+                Set("SelectedRack", ref _selectedRack, value);
+                SelectedTabIndex = 1;
+                SelectedSpecialTile = 5;
             }
         }
 
@@ -370,12 +455,52 @@ namespace TEditXna.ViewModel
             set { Set("PixelMap", ref _pixelMap, value); }
         }
 
-        public bool ShowWires
+        public bool ShowRedWires
         {
-            get { return _showWires; }
+            get { return _showRedWires; }
             set
             {
-                Set("ShowWires", ref _showWires, value);
+                Set("ShowRedWires", ref _showRedWires, value);
+                UpdateRenderWorld();
+            }
+        }
+
+        public bool ShowBlueWires
+        {
+            get { return _showBlueWires; }
+            set
+            {
+                Set("ShowBlueWires", ref _showBlueWires, value);
+                UpdateRenderWorld();
+            }
+        }
+
+        public bool ShowGreenWires
+        {
+            get { return _showGreenWires; }
+            set
+            {
+                Set("ShowGreenWires", ref _showGreenWires, value);
+                UpdateRenderWorld();
+            }
+        }
+
+        public bool ShowYellowWires
+        {
+            get { return _showYellowWires; }
+            set
+            {
+                Set("ShowYellowWires", ref _showYellowWires, value);
+                UpdateRenderWorld();
+            }
+        }
+
+        public bool ShowActuators
+        {
+            get { return _showActuators; }
+            set
+            {
+                Set("ShowActuators", ref _showActuators, value);
                 UpdateRenderWorld();
             }
         }
@@ -478,7 +603,7 @@ namespace TEditXna.ViewModel
                     {
                         byte[] dl = Client.DownloadData("http://www.binaryconstruct.com/downloads/teditversion.txt");
 
-                        string vers = Encoding.UTF8.GetString(dl);
+                        string vers = Encoding.Unicode.GetString(dl);
                         string[] verstrimmed = vers.Split('v');
 
                         if (verstrimmed.Length != 2) return null;

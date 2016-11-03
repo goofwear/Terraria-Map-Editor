@@ -16,8 +16,6 @@ namespace TEditXNA.Terraria
         SlopeTopLeft = 0x3,
         SlopeBottomRight = 0x4,
         SlopeBottomLeft = 0x5,
-        Unknown06 = 0x6,
-        Unknown07 = 0x7,
     }
 
     public enum LiquidType : byte
@@ -44,8 +42,10 @@ namespace TEditXNA.Terraria
         Dresser = 88,
         EbonsandBlock = 112,
         PearlsandBlock = 116,
+        CrimsandBlock = 234,
         IceByRod = 127,
-        Timer = 144
+        Timer = 144,
+        AnnouncementBox = 425
     }
 
     [Serializable]
@@ -57,6 +57,7 @@ namespace TEditXNA.Terraria
         public bool WireRed;
         public bool WireGreen;
         public bool WireBlue;
+        public bool WireYellow;
         public byte TileColor;
         public ushort Type;
         public byte Wall;
@@ -140,6 +141,7 @@ namespace TEditXNA.Terraria
             WireRed = false;
             WireGreen = false;
             WireBlue = false;
+            WireYellow = false;
             TileColor = 0;
             Type = 0;
             Wall = 0;
@@ -164,6 +166,7 @@ namespace TEditXNA.Terraria
                 WireRed.Equals(other.WireRed) &&
                 WireGreen.Equals(other.WireGreen) &&
                 WireBlue.Equals(other.WireBlue) &&
+                WireYellow.Equals(other.WireYellow) &&
                 BrickStyle.Equals(other.BrickStyle) &&
                 BrickStyle == other.BrickStyle &&
                 Actuator.Equals(other.Actuator) &&
@@ -186,6 +189,7 @@ namespace TEditXNA.Terraria
                 hashCode = (hashCode * 397) ^ WireRed.GetHashCode();
                 hashCode = (hashCode * 397) ^ WireGreen.GetHashCode();
                 hashCode = (hashCode * 397) ^ WireBlue.GetHashCode();
+                hashCode = (hashCode * 397) ^ WireYellow.GetHashCode();
                 hashCode = (hashCode * 397) ^ LiquidType.GetHashCode();
                 hashCode = (hashCode * 397) ^ TileColor.GetHashCode();
                 hashCode = (hashCode * 397) ^ Wall.GetHashCode();
@@ -219,7 +223,7 @@ namespace TEditXNA.Terraria
 
         public static bool IsSign(int tileType)
         {
-            return tileType == (int)TileType.Sign || tileType == (int)TileType.GraveMarker;
+            return tileType == (int)TileType.Sign || tileType == (int)TileType.GraveMarker || tileType == (int)TileType.AnnouncementBox;
         }
 
     }

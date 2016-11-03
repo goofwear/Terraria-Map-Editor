@@ -58,8 +58,8 @@ namespace TEditXNA.Terraria
             }
             catch (ArgumentOutOfRangeException err)
             {
-                string msg = string.Format("There is a problem in your world.\r\n" + 
-                                           "{0}\r\nThis world will not open in Terraria\r\n" + 
+                string msg = string.Format("There is a problem in your world.\r\n" +
+                                           "{0}\r\nThis world will not open in Terraria\r\n" +
                                            "Would you like to save anyways??\r\n"
                                            , err.ParamName);
                 if (MessageBox.Show(msg, "World Error", MessageBoxButton.YesNo, MessageBoxImage.Error) !=
@@ -68,7 +68,7 @@ namespace TEditXNA.Terraria
             }
             lock (_fileLock)
             {
-                
+
 
                 if (resetTime)
                 {
@@ -95,7 +95,7 @@ namespace TEditXNA.Terraria
                         // make a backup of current file if it exists
                         if (File.Exists(filename))
                         {
-                            string backup = filename + ".TEdit";
+                            string backup = filename + "." + DateTime.Now.ToString("yyyyMMddHHmmss") + ".TEdit";
                             File.Copy(filename, backup, true);
                         }
                         // replace actual file with temp save file
@@ -134,13 +134,14 @@ namespace TEditXNA.Terraria
             {
 
                 string msg =
-                    string.Format("There was an error reading the world file, do you wish to force it to load anyway?\r\n\r\n" +
+                    string.Format("There was an error reading the world file. This is usually caused by a corrupt save file or a world version newer than supported.\r\n\r\n" +
+                                  "TEdit v{0}\r\n" +
+                                  "TEdit Max World: {1}    Current World: {2}\r\n\r\n" +
+                                  "Do you wish to force it to load anyway?\r\n\r\n" +
                                   "WARNING: This may have unexpected results including corrupt world files and program crashes.\r\n\r\n" +
-                                   "The error is :\r\n" +
-                                   "TEdit supports world files of version {0}.\r\n" +
-                                  "This world is Version {1}.\r\n"
-                    , World.CompatibleVersion, curVersion);
-                if (MessageBox.Show(msg + err, "World File Error", MessageBoxButton.YesNo, MessageBoxImage.Error) !=
+                                   "The error is :\r\n{3}\r\n\r\n{4}\r\n"
+                    , TEditXna.App.Version.FileVersion, World.CompatibleVersion, curVersion, err.Message, err);
+                if (MessageBox.Show(msg, "World File Error", MessageBoxButton.YesNo, MessageBoxImage.Error) !=
                     MessageBoxResult.Yes)
                     return null;
             }
@@ -175,6 +176,34 @@ namespace TEditXNA.Terraria
         public Sign GetSignAtTile(int x, int y)
         {
             return Signs.FirstOrDefault(c => (c.X == x || c.X == x - 1) && (c.Y == y || c.Y == y - 1));
+        }
+
+        public TileEntity GetTileEntityAtTile(int x, int y)
+        {
+        	return TileEntities.FirstOrDefault(c => (c.PosX == x || c.PosX == x - 1) && (c.PosY == y || c.PosY == y - 1));
+        }
+
+        public Vector2Int32 GetMannequin(int x, int y)
+        {
+            Tile tile = Tiles[x, y];
+            x -= (tile.U % 100) % 36 / 18;
+            y -= tile.V / 18;
+            return new Vector2Int32(x, y);
+        }
+
+        public Vector2Int32 GetRack(int x, int y)
+        {
+            Tile tile = Tiles[x, y];
+            if (tile.U >= 5000)
+            {
+                x -= ((tile.U / 5000) - 1) % 3;
+            }
+            else
+            {
+                x -= tile.U % 54 / 18;
+            }
+            y -= tile.V / 18;
+            return new Vector2Int32(x, y);
         }
 
         public Vector2Int32 GetChestAnchor(int x, int y)
@@ -227,6 +256,21 @@ namespace TEditXNA.Terraria
                         {
                             Signs.Add(new Sign(x, y, string.Empty));
                         }
+                    }
+                    //validate logic sensors
+                    else if (curTile.Type == 423)
+                    {
+                    	if (GetTileEntityAtTile(x, y) == null)
+                    	{
+                    		TileEntity TE = new TileEntity();
+                    		TE.Type = 2;
+                    		TE.PosX = (short)x;
+                    		TE.PosY = (short)y;
+                    		TE.On = false;
+                    		TE.LogicCheck = (byte)(curTile.V / 18 + 1);
+                    		TE.Id = TileEntities.Count;
+                    		TileEntities.Add(TE);
+                    	}
                     }
                 }
             }

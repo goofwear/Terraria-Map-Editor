@@ -36,7 +36,7 @@ namespace TEditXna.Render
         }
         #endregion
 
-        public static Color GetTileColor(Tile tile, Color background, bool showWall = true, bool showTile = true, bool showLiquid = true, bool showWire = true)
+        public static Color GetTileColor(Tile tile, Color background, bool showWall = true, bool showTile = true, bool showLiquid = true, bool showRedWire = true, bool showBlueWire = true, bool showGreenWire = true, bool showYellowWire = true)
         {
             var c = new Color(0, 0, 0, 0);
 
@@ -45,7 +45,12 @@ namespace TEditXna.Render
                 if (tile.WallColor > 0 && (!showTile || tile.TileColor == 0))
                     c = c.AlphaBlend(World.PaintProperties[tile.WallColor].Color);
                 else if (World.WallProperties.Count > tile.Wall)
-                    c = c.AlphaBlend(World.WallProperties[tile.Wall].Color);
+                {
+                    if (World.WallProperties[tile.Wall].Color.A != 0)
+                        c = c.AlphaBlend(World.WallProperties[tile.Wall].Color);
+                    else
+                        c = background;
+                }
                 else
                     c = c.AlphaBlend(Color.Magenta); // Add out-of-range colors
             }
@@ -69,19 +74,21 @@ namespace TEditXna.Render
                 else c = c.AlphaBlend(World.GlobalColors["Water"]);
             }
 
-            if (showWire){
-                if (tile.WireRed)
-                {
-                    c = c.AlphaBlend(World.GlobalColors["Wire"]);
-                }
-                if (tile.WireGreen)
-                {
-                    c = c.AlphaBlend(World.GlobalColors["Wire1"]);
-                }
-                if (tile.WireBlue)
-                {
-                    c = c.AlphaBlend(World.GlobalColors["Wire2"]);
-                }
+            if (tile.WireRed && showRedWire)
+            {
+                c = c.AlphaBlend(World.GlobalColors["Wire"]);
+            }
+            if (tile.WireGreen && showGreenWire)
+            {
+                c = c.AlphaBlend(World.GlobalColors["Wire2"]);
+            }
+            if (tile.WireBlue && showBlueWire)
+            {
+                c = c.AlphaBlend(World.GlobalColors["Wire1"]);
+            }
+            if (tile.WireYellow && showYellowWire)
+            {
+                c = c.AlphaBlend(World.GlobalColors["Wire3"]);
             }
 
             return c;
